@@ -1,0 +1,13 @@
+token/*
+!token/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+config
+
+__pycache__
+
+configAndrea.py
+
+Pipfile.lock
