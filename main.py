@@ -1,5 +1,6 @@
 from datetime import date, datetime
-import logging, logging.config
+import logging
+import logging.config
 import os
 import time
 
@@ -9,7 +10,6 @@ import GSheetFunctions as Google
 import Esse3Functions as Esse3
 import Moodle as Moodle_ref
 from config import LINK_CORSO_MOODLE
-import os,sys
 
 # Store current working directory
 pwd = os.path.dirname(os.path.abspath(__file__))
@@ -30,8 +30,8 @@ def recuperaAppelliEsse3():
         datiSS = Google.getDatiEsse3()
         listaAppelli = Google.getListaAppelli()
         sheetIdListaAppelli = Google.getSheetId("ListaAppelli")
-        if datiSS == None:
-            logger.error(f"Non è stato possibile recuperare i dati dal foglio Google")
+        if datiSS is None:
+            logger.error("Non è stato possibile recuperare i dati dal foglio Google")
             return -1
         #per ogni riga del foglio vado a vedere gli esami
         columns = Google.lookup(datiSS[0])
@@ -49,7 +49,8 @@ def recuperaAppelliEsse3():
             docente = row[columns['docente']]
             appelli = Esse3.retrieveAppelliFromEsse3(cdsId, adId, outputemail)
             rowsValues = []
-            if not appelli: continue
+            if not appelli:
+                continue
             for appello in appelli:
                 #recupero alcuni campi utili
                 rowValues = []
@@ -102,7 +103,7 @@ def recuperaAppelliEsse3():
 def iscrizione_utenti():
     
     listaAppelli = Google.getListaAppelli()
-    if listaAppelli == None:
+    if listaAppelli is None:
         logger.error("Non è stato possibile recuperare i dati dal foglio Google")
         return -1
     #per ogni riga del foglio vado a vedere gli esami
@@ -125,7 +126,7 @@ def iscrizione_utenti():
                 docenteEsse3 = Esse3.trovaDocente(docenteId)
                 Moodle_ref.enrollDocente(docenteEsse3, idCorsoMoodle)
                 Google.insertValue(f"ListaAppelli!G{index}",[[True]])
-            if not studentiIscritti and date.today() >= datetime.strptime(dataFineIscrizioni, "%d/%m/%Y").date():
+            if not studentiIscritti and date.today() > datetime.strptime(dataFineIscrizioni, "%d/%m/%Y").date():
                 studentiIscrittiEsse3 = Esse3.listaStudenti(cdsId, adId, appId)
                 if studentiIscrittiEsse3:
                     Moodle_ref.EnrollStudenti(studentiIscrittiEsse3,idCorsoMoodle)
