@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+import time
 
 import requests
 from config import GLOBAL_API, GLOBAL_FORMAT, GLOBAL_TOKEN
@@ -13,10 +14,16 @@ def moodle_request(ws, body):
     wsFunction = f"&wsfunction={ws}"
     url = apiUrl+token+wsFunction+format
     try:
-        response = requests.post(url, params = body).json()
+        response_html = requests.post(url, params = body)
+        response = response_html.json()
+        response_html.raise_for_status()
+        logger.info(response)
         if response and 'exception' in response:
             raise Exception(f"Eccezione in {ws} {response['errorcode']}: {response['message']}")
         return response
+    except requests.exceptions.HTTPError as e:
+        logger.debug(f"Errore durante la chiamata {ws}")
+        raise Exception(f"Errore durante la chiamata {ws}: {e}")
     except Exception as e:
         logger.debug(f"Errore durante la chiamata {ws}")
         raise Exception(f"Errore durante la chiamata {ws}: {e}")
@@ -43,7 +50,8 @@ def checkCorsoMoodle(appello, turni):
     
     # dopo aver trovato la categoria o creata devo verificare che non abbia già creato il corso all'interno di essa attraverso la ricerca dello shortname
     shortname = f"Appello {appello['cdsId']}_{appello['adId']}_{appello['dataInizioApp'].split(' ')[0]}_{appello['presidenteCognome']}"
-    if (turni): shortname+=f"_{appello['appId']}"
+    if (turni):
+        shortname+=f"_{appello['appId']}"
     ws = "core_course_get_courses_by_field"
     params = {"field": "shortname", "value": shortname}
     try:
@@ -61,7 +69,7 @@ def createCategory(nomeCategoria, idCategoriaPadre):
     try:
         #controllo che la categoria non sia già presente
         categoria = checkCategoriaMoodle(nomeCategoria, idCategoriaPadre)
-        if categoria == None:
+        if categoria is None:
             #creo la categoria
             params = {"categories[0][name]": nomeCategoria,
                  "categories[0][parent]": idCategoriaPadre}
@@ -84,7 +92,8 @@ def createCourse(appello, singolaAttivita, turni, categoriaId):
     # setto i parametri per la creazione del corso
     fullname = f"{appello['adDes'].replace(' - NO ESAME', '')} Esame del {appello['dataInizioApp'].split(' ')[0]}"
     shortname = f"Appello {appello['cdsId']}_{appello['adId']}_{appello['dataInizioApp'].split(' ')[0]}_{appello['presidenteCognome']}"
-    if (turni): shortname+=f"_{appello['appId']}"
+    if (turni):
+        shortname+=f"_{appello['appId']}"
     summaryCourse = f"{appello['cdsDes']} \n {appello['desApp']}"
     if singolaAttivita:
         params = {"courses[0][fullname]": fullname, "courses[0][shortname]": shortname, "courses[0][categoryid]": categoriaId, "courses[0][format]": 'singleactivity',
@@ -117,6 +126,7 @@ def retrieveUser(username):
             params = {"field": "username", "values[]": username[i:i+step]}
             response = moodle_request(ws, params)
             usersMoodle.extend(response)
+            time.sleep(2)
         return usersMoodle
         
     except Exception as ex:
@@ -173,6 +183,7 @@ def EnrollStudenti(studentiIscritti, idCorsoMoodle):
     
     try:
         studentiMoodle = retrieveUser(arrayUsername)
+        print(f"lunghezza utenti trovati su Moodle {len(studentiMoodle)}")
         arrayUsername.clear()
         for user in studentiMoodle:
             arrayUsername.append(user['username'])        
@@ -181,18 +192,27 @@ def EnrollStudenti(studentiIscritti, idCorsoMoodle):
                 studentiDaCreare.append(studente)
         if studentiDaCreare: 
             newusers = creaUtentiMoodle(studentiDaCreare)
+            print(f"lunghezza utenti trovati da creare {len(newusers)}")
             studentiMoodle += newusers
-        for index,studenteMoodle in enumerate(studentiMoodle):
-            counter = 0
-            while counter < 20:
-                paramsEnrollStudents.update({
-                "enrolments["+str(index)+"][roleid]": 5,
-                "enrolments["+str(index)+"][userid]": studenteMoodle['id'],
-                "enrolments["+str(index)+"][courseid]": idCorsoMoodle
-                })
-                counter += 1
-            response = moodle_request(ws, paramsEnrollStudents)
+        counter = 0
+        print(f"Lunghezza studentiIScritti:{len(studentiIscritti)}\nlunghezza utentiMoodle:{len(studentiMoodle)}")
+        while (counter < len(studentiIscritti)):
+            for j in range(1, 20):
+                
+                if (counter < len(studentiIscritti)):
+                    print(j)
+                    print(studentiIscritti[counter])
+                    studenteMoodle = studentiMoodle[counter]
+                    paramsEnrollStudents.update({
+                    "enrolments["+str(j)+"][roleid]": 5,
+                    "enrolments["+str(j)+"][userid]": studenteMoodle['id'],
+                    "enrolments["+str(j)+"][courseid]": idCorsoMoodle
+                    })
+                    counter += 1
+            moodle_request(ws, paramsEnrollStudents)
             paramsEnrollStudents.clear()
+            time.sleep(2)
+        logger.info(f"Iscritti {counter} studenti")
     except Exception as e:
         raise Exception(e)
 
@@ -201,24 +221,29 @@ def creaUtentiMoodle(utenti):
 
     ws = "core_user_create_users"
     params = {}
-    for index,user in enumerate(utenti, 0):
-        counter = 0
-        while counter < 20:
-            if user['nomeStudente'] == "   ":
-                user['nomeStudente'] = "XXX"
-            params.update({
-                "users["+str(index)+"][createpassword]": 0,
-                "users["+str(index)+"][username]": user['userId'],
-                "users["+str(index)+"][auth]": "shibboleth",
-                "users["+str(index)+"][firstname]": user['nomeStudente'],
-                "users["+str(index)+"][lastname]": user['cognomeStudente'],
-                "users["+str(index)+"][email]": user['userId']+"@edu.unife.it",
-                "users["+str(index)+"][customfields][0][type]": "esse3Matricola",
-                "users["+str(index)+"][customfields][0][value]": user['matricola']
-            })
-            counter += 1
+    counter = 0
+
+    while counter < len(utenti):
+        for j in range(0,20):
+            if counter<len(utenti):
+                user = utenti[counter]
+                
+                if user['nomeStudente'] == "   ":
+                    user['nomeStudente'] = "XXX"
+                params.update({
+                    "users["+str(j)+"][createpassword]": 0,
+                    "users["+str(j)+"][username]": user['userId'],
+                    "users["+str(j)+"][auth]": "shibboleth",
+                    "users["+str(j)+"][firstname]": user['nomeStudente'],
+                    "users["+str(j)+"][lastname]": user['cognomeStudente'],
+                    "users["+str(j)+"][email]": user['userId']+"@edu.unife.it",
+                    "users["+str(j)+"][customfields][0][type]": "esse3Matricola",
+                    "users["+str(j)+"][customfields][0][value]": user['matricola']
+                })
+                counter += 1
         response = moodle_request(ws, params)
         params.clear()
+        time.sleep(2)
     return response
 
 def creaQuiz(corso, appello):
@@ -238,6 +263,6 @@ def creaQuiz(corso, appello):
                  }
 
     try:
-        response = moodle_request(ws, params)
+        moodle_request(ws, params)
     except Exception as e:
         raise Exception(e)
