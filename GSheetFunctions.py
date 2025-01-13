@@ -202,8 +202,10 @@ def clearAppelli():
                 "startColumnIndex": 0,
                 "endColumnIndex": 13
             }
-        else : break
-    if range: deleteRange(range)
+        else :
+            break
+    if range:
+        deleteRange(range)
             
 def sortAppelli():
     creds = getCredentials()
@@ -240,7 +242,8 @@ def sortAppelli():
     
 def trovaInListaAppelli(_values, listaAppelli):
     for row in listaAppelli[1:]:
-        if set(_values).issubset(set(row)): return True
+        if set(_values).issubset(set(row)):
+            return True
     return False
 
 def deleteRange(range):
@@ -338,7 +341,7 @@ def createBatchUpdates(_values, _batchRequest, sheetId):
                             "stringValue": val,
                         }
                     })
-                case date:
+                case date():
                     temp = datetime(1899, 12, 30)    # Note, not 31st Dec but 30th!
                     delta = val - temp
                     sheetDate = float(delta.days) + (float(delta.seconds) / 86400)
@@ -411,7 +414,7 @@ def insertBatchUpdates(_batchRequest):
         creds = getCredentials()
 
         service = build('sheets', 'v4', credentials=creds, cache_discovery = False)
-        spreadsheet = service.spreadsheets().get(spreadsheetId=SAMPLE_SPREADSHEET_ID).execute()
+        service.spreadsheets().get(spreadsheetId=SAMPLE_SPREADSHEET_ID).execute()
 
         service.spreadsheets().batchUpdate(spreadsheetId = SAMPLE_SPREADSHEET_ID , body = _batchRequest).execute()
     except HttpError as httpError: 
