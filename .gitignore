@@ -9,5 +9,3 @@ config.py
 __pycache__
 
 configAndrea.py
-
-Pipfile.lock
