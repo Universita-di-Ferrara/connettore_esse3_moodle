@@ -1,5 +1,6 @@
 from datetime import date, timedelta
-import requests, logging
+import requests
+import logging
 
 from config import GLOBAL_ESSE3, BASIC_AUTH
 
@@ -12,8 +13,8 @@ def retrieveAppelliFromEsse3(cds, adid,outputMail):
     # specifico un intervallo di tempo di una settimana a partire da oggi
     minData = date.today().strftime('%d/%m/%Y')
     maxData = (date.today() + timedelta(days=14)).strftime('%d/%m/%Y')
-    #minData = "01/06/2024"
-    #maxData = "30/06/2024"
+    #minData = "01/01/2025"
+    #maxData = "31/01/2025"
     urlRequest = url+cds+'/'+adid+'/?'
     param = {'minDataApp': minData, 'maxDataApp': maxData}
     headers = {'accept': 'application/json',
@@ -34,7 +35,6 @@ def retrieveAppelliFromEsse3(cds, adid,outputMail):
 
 
 def listaStudenti(cdsId, adId, appId):
-    today = date.today()
     url = f"{GLOBAL_ESSE3}calesa-service-v1/appelli/{cdsId}/{adId}/{appId}/iscritti"
     # condizione: se l'iscrizione all'esame è conclusa e l'esame non è ancora iniziato
     #if datetime.strptime(appello['dataFineIscr'], '%d/%m/%Y %H:%M:%S').date() <= today and today <= datetime.strptime(appello['dataInizioApp'], '%d/%m/%Y %H:%M:%S').date():
@@ -48,6 +48,11 @@ def listaStudenti(cdsId, adId, appId):
         response.raise_for_status()
         if (response.json() != []):
             studentiIscritti = response.json()
+            #ora devo aggiornare i dati degli studenti, sostituendo lo userId con l'alias
+            for studente in studentiIscritti:
+                anagrafica_studente = anagrafica(studente['codFisStudente'])
+                alias_userId = anagrafica_studente['emailAte'].split("@")[0]
+                studente['userId'] = alias_userId
             return studentiIscritti
     except requests.HTTPError as ex:
         raise ex
@@ -68,3 +73,22 @@ def trovaDocente(presidenteId):
         return docente
     except requests.HTTPError as ex:
         raise ex
+    
+def anagrafica(codice_fiscale :str):
+    
+    url = f"{GLOBAL_ESSE3}anagrafica-service-v2/persone"
+        
+    headers = {'accept': 'application/json',
+               'authorization': BASIC_AUTH,
+               'X-Esse3-permit-invalid-jsessionid': 'true'}
+    params = {'codFis': codice_fiscale}
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        if (response.json() != []):
+            utente = response.json()[0]
+            return utente
+    except Exception as e:
+        stringaErr = f"Errore: utente non trovato {codice_fiscale} --> eccezione: {e} "
+        logger.error(stringaErr)
+        
+        return None
