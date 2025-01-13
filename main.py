@@ -133,7 +133,7 @@ def iscrizione_utenti():
                     Google.insertValue(f"ListaAppelli!H{index}",[[True]])
         except Exception as ex:
             message = f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}"
-            print (message)
+            logger.warning(message)
             continue
 
    
