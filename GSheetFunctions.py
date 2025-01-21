@@ -193,6 +193,8 @@ def getValues(cellRange):
 def clearAppelli():
     listaAppelli = getListaAppelli()
     range = {}
+    if not listaAppelli: 
+        return  
     for index,row in enumerate(listaAppelli[1:],2):
         #3 index è la data appello
         if (date.today() > datetime.strptime(row[3], "%d/%m/%Y").date()):
@@ -241,6 +243,8 @@ def sortAppelli():
     service.spreadsheets().batchUpdate(spreadsheetId = SAMPLE_SPREADSHEET_ID , body = _batchRequest).execute()
     
 def trovaInListaAppelli(_values, listaAppelli):
+    if not listaAppelli:
+        return False
     for row in listaAppelli[1:]:
         if set(_values).issubset(set(row)):
             return True
