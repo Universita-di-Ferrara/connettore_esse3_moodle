@@ -222,7 +222,7 @@ def creaUtentiMoodle(utenti):
     ws = "core_user_create_users"
     params = {}
     counter = 0
-
+    allnewusers = []
     while counter < len(utenti):
         for j in range(0,20):
             if counter<len(utenti):
@@ -242,9 +242,10 @@ def creaUtentiMoodle(utenti):
                 })
                 counter += 1
         response = moodle_request(ws, params)
+        allnewusers.extend(response)
         params.clear()
         time.sleep(2)
-    return response
+    return allnewusers
 
 def creaQuiz(corso, appello):
     #do il nome al quiz come Esame del DATA
