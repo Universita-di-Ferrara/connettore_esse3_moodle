@@ -9,7 +9,7 @@ import yaml
 import GSheetFunctions as Google
 import Esse3Functions as Esse3
 import Moodle as Moodle_ref
-from config import LINK_CORSO_MOODLE
+from config import LINK_CORSO_MOODLE, SAMPLE_RANGE_NAME
 
 # Store current working directory
 pwd = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +29,7 @@ def recuperaAppelliEsse3():
         Google.clearAppelli()
         datiSS = Google.getDatiEsse3()
         listaAppelli = Google.getListaAppelli()
-        sheetIdListaAppelli = Google.getSheetId("ListaAppelli")
+        sheetIdListaAppelli = Google.getSheetId(SAMPLE_RANGE_NAME)
         if datiSS is None:
             logger.error("Non è stato possibile recuperare i dati dal foglio Google")
             return -1
@@ -123,14 +123,20 @@ def iscrizione_utenti():
         print(cdsId, adId, appId, idCorsoMoodle, dataFineIscrizioni, docenteIscritto, studentiIscritti, docenteId)
         try:
             if not docenteIscritto:
-                docenteEsse3 = Esse3.trovaDocente(docenteId)
-                Moodle_ref.enrollDocente(docenteEsse3, idCorsoMoodle)
-                Google.insertValue(f"ListaAppelli!G{index}",[[True]])
+                # ora cerco la commissione dell'appello
+                commissione = Esse3.getCommissioneAppello(cdsId, adId, appId)
+                print(commissione)
+                for docente in commissione:
+                    docenteId = docente['docenteId']
+                    docenteEsse3 = Esse3.trovaDocente(docenteId)
+                    print(docenteEsse3)
+                    Moodle_ref.enrollDocente(docenteEsse3, idCorsoMoodle)
+                Google.insertValue(f"{SAMPLE_RANGE_NAME}!G{index}",[[True]])
             if not studentiIscritti and date.today() > datetime.strptime(dataFineIscrizioni, "%d/%m/%Y").date():
                 studentiIscrittiEsse3 = Esse3.listaStudenti(cdsId, adId, appId)
                 if studentiIscrittiEsse3:
                     Moodle_ref.EnrollStudenti(studentiIscrittiEsse3,idCorsoMoodle)
-                    Google.insertValue(f"ListaAppelli!H{index}",[[True]])
+                    Google.insertValue(f"{SAMPLE_RANGE_NAME}!H{index}",[[True]])
         except Exception as ex:
             message = f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}"
             logger.warning(message)

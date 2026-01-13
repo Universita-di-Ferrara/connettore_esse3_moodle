@@ -92,3 +92,39 @@ def anagrafica(codice_fiscale :str):
         logger.error(stringaErr)
         
         return None
+    
+    
+def getCommissioneAppello(cdsId, adId, appId):
+    url = f"{GLOBAL_ESSE3}calesa-service-v1/appelli/{cdsId}/{adId}/{appId}/comm"
+    headers = {'accept': 'application/json',
+               'authorization': BASIC_AUTH,
+               'X-Esse3-permit-invalid-jsessionid': 'true'}
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        commissione = response.json()
+        return commissione
+    except requests.HTTPError as ex:
+        raise ex
+    
+    
+if __name__ == "__main__":
+    # Esempio di utilizzo
+    cds = "10881"
+    adid = "47305"
+    appId = "120"
+    commissione = getCommissioneAppello(cds, adid, appId)
+    if commissione:
+        for docente in commissione:
+            print(f"Docente: {docente['docenteNome']} {docente['docenteCognome']}, ID: {docente['docenteId']}")
+            docenteEsse3 = trovaDocente(docente['docenteId'])
+            print(f"Docente trovato: {docenteEsse3}")
+            if not docenteEsse3['userId']:
+                print('docente senza userId, non posso iscriverlo')
+            # ricavo userId dall'email nel campo eMail userId@unife.it
+            userId = docenteEsse3['eMail'].split('@')[0]
+            print(f"UserId del docente: {userId}")
+          
+        print("Commissione trovata:", commissione)
+    else:
+        print("Nessuna commissione trovata.")

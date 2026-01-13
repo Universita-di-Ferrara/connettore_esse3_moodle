@@ -12,7 +12,7 @@ import logging
 import base64
 from email.message import EmailMessage
 
-from config import SAMPLE_SPREADSHEET_ID, SCOPES, ADMIN_EMAIL, USER_EMAIL
+from config import SAMPLE_SPREADSHEET_ID, SCOPES, ADMIN_EMAIL, USER_EMAIL, SAMPLE_RANGE_NAME
 
 logger = logging.getLogger('log')
 
@@ -69,7 +69,7 @@ def getListaAppelli():
         service = build('sheets', 'v4', credentials=creds, cache_discovery = False)
         # a seconda del token prendo fogli differenti
         
-        SpreadSheet = "ListaAppelli"
+        SpreadSheet = SAMPLE_RANGE_NAME
         # Call the Sheets API
         sheet = service.spreadsheets()
         result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
@@ -172,7 +172,7 @@ def getValues(cellRange):
 
     try:
         service = build('sheets', 'v4', credentials=creds, cache_discovery = False)
-        rangeName = f"ListaAppelli!{cellRange}"
+        rangeName = f"{SAMPLE_RANGE_NAME}!{cellRange}"
        
         # Call the Sheets API
         sheet = service.spreadsheets()
@@ -216,7 +216,7 @@ def sortAppelli():
     service = build('sheets', 'v4', credentials=creds, cache_discovery = False)
     spreadsheet = service.spreadsheets().get(spreadsheetId=SAMPLE_SPREADSHEET_ID).execute()
     sheets = spreadsheet.get('sheets')
-    sheetName = "ListaAppelli"
+    sheetName = SAMPLE_RANGE_NAME
     for sheet in sheets:
         if sheet.get('properties').get('title') == sheetName:
             sheetId = sheet.get('properties').get('sheetId')
@@ -257,7 +257,7 @@ def deleteRange(range):
     service = build('sheets', 'v4', credentials=creds, cache_discovery = False)
     spreadsheet = service.spreadsheets().get(spreadsheetId=SAMPLE_SPREADSHEET_ID).execute()
     sheets = spreadsheet.get('sheets')
-    sheetName = "ListaAppelli"
+    sheetName = SAMPLE_RANGE_NAME
     for sheet in sheets:
         if sheet.get('properties').get('title') == sheetName:
             sheetId = sheet.get('properties').get('sheetId')
@@ -281,7 +281,7 @@ def resetValues(index):
 
     try:
         service = build('sheets', 'v4', credentials=creds, cache_discovery = False)
-        rangeName = f"ListaAppelli!A{index}:I{index}"
+        rangeName = f"{SAMPLE_RANGE_NAME}!A{index}:I{index}"
         body = {"values":[["", "", "", "", "", "", "", ""]]}
         # Call the Sheets API
         sheet = service.spreadsheets()

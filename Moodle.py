@@ -133,6 +133,9 @@ def retrieveUser(username):
         raise(ex)
 
 def enrollDocente(docente, corsoMoodleId):
+    if not docente['userId']:
+            # ricavo userId dall'email nel campo eMail userId@unife.it
+            docente['userId'] = docente['eMail'].split('@')[0]
     userMoodle = retrieveUser([docente['userId']])
     idCorsoMoodle = corsoMoodleId
     try:

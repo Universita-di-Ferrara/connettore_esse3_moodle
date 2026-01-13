@@ -32,4 +32,4 @@ if (flag == "PRODUZIONE"):
 
     GLOBAL_TOKEN = ""
     LINK_CORSO_MOODLE = ""
-
+    SAMPLE_RANGE_NAME = 'nome foglio'
