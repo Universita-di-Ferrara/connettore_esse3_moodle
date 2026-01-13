@@ -8,4 +8,5 @@ config.py
 
 __pycache__
 
-configAndrea.py
+# Ignore all .DS_Store files
+.DS_Store
