@@ -177,7 +177,8 @@ def listaStudenti(cdsId, adId, appId):
                 )
                 logger.error(message)
                 raise Esse3RequestError(message)
-            studente['emailAte'] = anagrafica_studente.get('emailAte')
+            alias_userId = anagrafica_studente['emailAte'].split("@")[0]
+            studente['userId'] = alias_userId
         return studentiIscritti
 
 

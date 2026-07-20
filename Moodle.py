@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-import json
 import time
 
 import requests
@@ -16,18 +15,8 @@ def moodle_request(ws, body):
     url = apiUrl+token+wsFunction+format
     try:
         response_html = requests.post(url, params = body)
+        response = response_html.json()
         response_html.raise_for_status()
-        try:
-            response = response_html.json()
-        except json.JSONDecodeError as e:
-            message = (
-                f"Risposta non JSON durante la chiamata {ws}. "
-                f"status={response_html.status_code}; url={response_html.url}; "
-                f"content-type={response_html.headers.get('content-type')}; "
-                f"risposta={response_html.text[:500]!r}"
-            )
-            logger.error(message)
-            raise Exception(message) from e
         logger.info(response)
         if response and 'exception' in response:
             raise Exception(f"Eccezione in {ws} {response['errorcode']}: {response['message']}")
@@ -250,7 +239,7 @@ def creaUtentiMoodle(utenti):
                     "users["+str(j)+"][auth]": "shibboleth",
                     "users["+str(j)+"][firstname]": user['nomeStudente'],
                     "users["+str(j)+"][lastname]": user['cognomeStudente'],
-                    "users["+str(j)+"][email]": user['emailAte'],
+                    "users["+str(j)+"][email]": user['userId']+"@edu.unife.it",
                     "users["+str(j)+"][customfields][0][type]": "esse3Matricola",
                     "users["+str(j)+"][customfields][0][value]": user['matricola']
                 })
